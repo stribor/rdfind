@@ -16,6 +16,9 @@
 // os
 #include <sys/stat.h> //for file info
 #include <unistd.h>   //for unlink etc.
+#if HAVE_SYS_CLONEFILE_H
+#include <sys/clonefile.h> // for clonefile
+#endif
 
 // project
 #include "Checksum.hh" //checksum calculation
@@ -318,3 +321,25 @@ Fileinfo::static_makehardlink(Fileinfo& A, const Fileinfo& B)
 {
   return A.makehardlink(B);
 }
+
+#if HAVE_SYS_CLONEFILE_H
+int
+Fileinfo::makeclone(const Fileinfo& A)
+{
+  return transactional_operation(name(), [&](const std::string& filename) {
+    // make a hardlink.
+    const int retval = clonefile(A.name().c_str(), filename.c_str(), 0);
+    if (retval) {
+      std::cerr << "Failed to make clone of file " << filename << " to " << A.name()
+                << '\n';
+    }
+    return retval;
+  });
+}
+
+int
+Fileinfo::static_makeclone(Fileinfo& A, const Fileinfo& B)
+{
+    return A.makeclone(B);
+}
+#endif

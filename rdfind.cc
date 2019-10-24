@@ -68,6 +68,11 @@ usage()
        "symbolic links\n"
     << " -makehardlinks     true |(false) replace duplicate files with "
        "hard links\n"
+#if HAVE_SYS_CLONEFILE_H
+    << " -makeclones        true |(false) replace duplicate files with "
+       "copy on write clones\n"
+       "                                  (available on APFS volumes on OS X)\n"
+#endif
     << " -makeresultsfile  (true)| false  makes a results file\n"
     << " -outputname  name  sets the results file name to \"name\" "
        "(default results.txt)\n"
@@ -99,6 +104,7 @@ struct Options
   Fileinfo::filesizetype maximumfilesize =
     0; // if nonzero, files this size or larger are ignored
   bool deleteduplicates = false;      // delete duplicate files
+  bool makeclones = false;            // turn duplicates into copy on write clones
   bool followsymlinks = false;        // follow symlinks
   bool dryrun = false;                // only dryrun, dont destroy anything
   bool remove_identical_inode = true; // remove files with identical inodes
@@ -132,6 +138,10 @@ parseOptions(Parser& parser)
       o.makesymlinks = parser.get_parsed_bool();
     } else if (parser.try_parse_bool("-makehardlinks")) {
       o.makehardlinks = parser.get_parsed_bool();
+#if HAVE_SYS_CLONEFILE_H
+    } else if (parser.try_parse_bool("-makeclones")) {
+      o.makeclones = parser.get_parsed_bool();
+#endif
     } else if (parser.try_parse_bool("-makeresultsfile")) {
       o.makeresultsfile = parser.get_parsed_bool();
     } else if (parser.try_parse_string("-outputname")) {
@@ -424,5 +434,16 @@ main(int narg, const char* argv[])
     std::cout << dryruntext << "Deleted " << tmp << " files." << std::endl;
     return 0;
   }
+
+#if HAVE_SYS_CLONEFILE_H
+  // traverse the list and replace with copy on write clones
+  if (o.makeclones) {
+    std::cout << dryruntext << "Now making clones of files." << std::endl;
+    const auto tmp = gswd.makeclones(o.dryrun);
+    std::cout << dryruntext << "Making " << tmp << " clones." << std::endl;
+    return 0;
+  }
+#endif
+
   return 0;
 }

@@ -175,6 +175,20 @@ Rdutil::makehardlinks(bool dryrun) const
     return applyactiononfile(m_list, &Fileinfo::static_makehardlink);
 }
 
+#if HAVE_SYS_CLONEFILE_H
+std::size_t
+Rdutil::makeclones(bool dryrun) const
+{
+  if (dryrun) {
+    const bool outputBname = true;
+    dryrun_helper<outputBname> obj("clonefile ", " to ");
+    const auto ret = applyactiononfile(m_list, obj);
+    std::cout.flush();
+    return ret;
+  } else
+    return applyactiononfile(m_list, &Fileinfo::static_makeclone);
+}
+#endif
 // mark files with a unique number
 void
 Rdutil::markitems()

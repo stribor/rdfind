@@ -99,6 +99,10 @@ public:
   /// delete duplicates from file system.
   std::size_t deleteduplicates(bool dryrun) const;
 
+#if HAVE_SYS_CLONEFILE_H
+  /// make copy on write clone of duplicates.
+  std::size_t makeclones(bool dryrun) const;
+#endif
   /**
    * gets the total size, in bytes.
    * @param opmode 0 just add everything, 1 only elements with

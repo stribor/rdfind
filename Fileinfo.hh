@@ -98,6 +98,13 @@ public:
   // deletes file A, that is a duplicate of B
   static int static_deletefile(Fileinfo& A, const Fileinfo& B);
 
+#if HAVE_SYS_CLONEFILE_H
+  /// create copy on write clone of A to "this".
+  int makeclone(const Fileinfo& A);
+
+  // create copy on write clone of B to A
+  static int static_makeclone(Fileinfo& A, const Fileinfo& B);
+#endif
   // sets the deleteflag
   void setdeleteflag(bool flag) { m_delete = flag; }
 

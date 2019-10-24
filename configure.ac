@@ -56,6 +56,9 @@ AC_CHECK_LIB(nettle,main,,[AC_MSG_ERROR([
  and try again.
 ])])
 
+dnl test for clonefile
+AC_CHECK_HEADERS([sys/clonefile.h])
+
 dnl test for some specific functions
 AC_CHECK_FUNC(stat,,AC_MSG_ERROR(oops! no stat ?!?))
 

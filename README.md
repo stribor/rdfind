@@ -88,6 +88,7 @@ Rdfind uses the following algorithm. If N is the number of files to search throu
 15. If flag ”-deleteduplicates true”, then delete (unlink) duplicate files. Exit.
 16. If flag ”-makesymlinks true”, then replace duplicates with a symbolic link to the original. Exit.
 17. If flag ”-makehardlinks true”, then replace duplicates with a hard link to the original. Exit.
+18. If flag ”-makeclones true”, then replace duplicates with a copy on write clones of the original. Exit.
 
 ## Development
 
@@ -181,3 +182,37 @@ Everything is as expected.
 a, a1 and a2 got collapsed into a single entry. b, b1 and b2 got collapased into a single entry. So rdfind is left with a and b (depending on which of them is received first by the * expansion). It replaces b with a hardlink to a. b1 and b2 are untouched.
 
 If one runs rdfind repeatedly, the issue is resolved, one file being corrected every run.
+
+
+### Caveats / Features on `-makeclones`
+
+On OS X (maybe other BSDs) -makeclones will use crate copy on write copies if filesystem support functionality. This might be preferred than creating hard or soft links. 
+
+Here is relevant `man 2 clonefile` part:
+
+     The clonefile() function causes the named file src to be cloned to the
+     named file dst.  The cloned file dst shares its data blocks with the src
+     file but has its own copy of attributes, extended attributes and ACL's
+     which are identical to those of the named file src with the exceptions
+     listed below
+
+     1.   ownership information is set as it would be if dst was created by
+          openat(2) or mkdirat(2) or symlinkat(2) if the current user does not
+          have privileges to change ownership. If the optional flag
+          CLONE_NOOWNERCOPY is passed, the ownership information is the same
+          as if the the current user does not have privileges to change owner-
+          ship
+
+     2.   setuid and setgid bits are turned off in the mode bits for regular
+          files.
+
+     Subsequent writes to either the original or cloned file are private to
+     the file being modified (copy-on-write).  The named file dst must not
+     exist for the call to be successful. Since the clonefile() system call
+     might not allocate new storage for data blocks, it is possible for a sub-
+     sequent overwrite of an existing data block to return ENOSPC.
+
+     The clonefile(), clonefileat() and fclonefileat() function calls appeared
+     in OS X version 10.12
+
+Since there is no way to check if file is already clone of another one running rdfind -makeclones for second time will find same files duplicates even though they don't take more disk space.
