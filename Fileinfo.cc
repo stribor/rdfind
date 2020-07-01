@@ -326,12 +326,45 @@ Fileinfo::static_makehardlink(Fileinfo& A, const Fileinfo& B)
 int
 Fileinfo::makeclone(const Fileinfo& A)
 {
+  struct stat info_orig; // attributes of file that will be replaced by clone
+  int res;
+  do {
+    res = stat(name().c_str(), &info_orig);
+  } while (res < 0 && errno == EINTR);
+
+  if (res < 0) {
+    return res;
+  }
+
   return transactional_operation(name(), [&](const std::string& filename) {
     // make a hardlink.
     const int retval = clonefile(A.name().c_str(), filename.c_str(), 0);
     if (retval) {
-      std::cerr << "Failed to make clone of file " << filename << " to " << A.name()
-                << '\n';
+      std::cerr << "Failed to make clone of file " << filename << " to "
+                << A.name() << '\n';
+    } else {
+      // try to keep original ownership and filemode of cloned file
+      int res;
+      struct stat info_clone;
+      do {
+        res = stat(filename.c_str(), &info_clone);
+      } while (res < 0 && errno == EINTR);
+
+      if (res == 0) {
+        if (info_orig.st_mode != info_clone.st_mode) {
+          res = chmod(filename.c_str(), info_orig.st_mode);
+          if (res) {
+            std::cerr << "Failed to change mode of  " << A.name() << '\n';
+          }
+        }
+        if (info_orig.st_uid != info_clone.st_uid ||
+            info_orig.st_gid != info_clone.st_gid) {
+          res = chown(filename.c_str(), info_orig.st_uid, info_orig.st_gid);
+          if (res) {
+            std::cerr << "Failed to change ownership of  " << A.name() << '\n';
+          }
+        }
+      }
     }
     return retval;
   });
